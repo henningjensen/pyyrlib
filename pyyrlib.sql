@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `countries` (
 -- Tabellstruktur for tabell `verda`
 --
 
-CREATE TABLE IF NOT EXISTS `verda` (
+CREATE TABLE IF NOT EXISTS `places` (
   `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
   `countryid` int(11) NOT NULL,
   `placename` varchar(20) NOT NULL,

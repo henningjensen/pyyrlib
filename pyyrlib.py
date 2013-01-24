@@ -19,7 +19,7 @@ import urllib, urllib2, urlparse
 import xml.dom.minidom
 import traceback
 try:
-  import MySQLdb
+  import sqlite3
 except ImportError:
   pass
 import pyofc
@@ -317,9 +317,9 @@ def returnWeatherData(location, hourly = False):
   # Try to get location url
   try:
     locationurl = get_location_url(location, hourly)
-  except MySQLdb.OperationalError as e:
-    print "Error in retreiving a location url (no database available): " + location + str(e)
-    return False, ""
+#  except MySQLdb.OperationalError as e:
+#    print "Error in retreiving a location url (no database available): " + location + str(e)
+#    return False, ""
   except AttributeError as e:
     return False, ""
   except:
@@ -360,7 +360,7 @@ def getAndPrint(location):
   
   # Try to print data
   try:
-    printWeatherData(weatherdata)
+    printWeatherData(weatherdata[0])
   except:
     print "Error in printing xml data:"
     traceback.print_exc()
@@ -369,20 +369,17 @@ def getAndPrint(location):
 
 
 def get_db_cursor ():
-  conn=MySQLdb.connect(host = "localhost",
-                           user = "pyyrlib",
-                           passwd = "ifoo3aeshahN",
-                           db = "pyyrlib")
+  conn=sqlite3.connect("places.db")
   return conn, conn.cursor ()
 
 
 def get_xmlurl_by_name (cursor, name):
   query = "SELECT xml " +\
-    "FROM verda " +\
+    "FROM places " +\
     "WHERE placename LIKE('" + name + "%') " +\
     "UNION " +\
     "SELECT xml " +\
-    "FROM verda " +\
+    "FROM places " +\
     "WHERE LOWER(xml) LIKE ('%" + name + "%') "
 
   if 0 < cursor.execute(query):
@@ -438,3 +435,4 @@ if __name__ == "__main__":
     location = sys.argv[1]
   # Run simple print function
   sys.exit(getAndPrint(location))
+#  sys.exit(returnWeatherData(location)[0])  

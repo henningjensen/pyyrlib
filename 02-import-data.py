@@ -2,17 +2,16 @@
 # -*- coding: UTF-8; -*-
 
 '''
-Put verda2.txt in mysql db
+Import files (countries.txt, all_places.txt) into places.db
 '''
 
-import string, MySQLdb, sys
+import string, sys
+import sqlite3 as lite
 
 def get_db_cursor ():
-  conn=MySQLdb.connect(host = "localhost",
-                           user = "pyyrlib",
-                           passwd = "ifoo3aeshahN",
-                           db = "pyyrlib")
-  return conn, conn.cursor ()
+  conn = lite.connect('places.db')
+  conn.text_factory = str
+  return conn, conn.cursor()
 
 
 def clear_db (cursor, table):
@@ -20,64 +19,85 @@ def clear_db (cursor, table):
   cursor.execute(query)
 
 
-def insert_row_countries (cursor, table, fields):
-  query = "INSERT INTO " + table + " (countrycode, countryname) VALUES ( "
+def insert_row_countries (cursor, fields):
+  query = "INSERT INTO countries (countrycode, countryname) VALUES (?, ?);"
   
-  for i in range(0, 2):
-    if 0 != i:
-      query += ", "
-    query += "'" + all_lower(fields[i]) + "'"
+  country_code = all_lower(fields[0])
+  country_name = all_lower(fields[1])
 
-  query += " ) ON DUPLICATE KEY UPDATE countryname = '" + fields[1] + "' ;"
-
-  print query
-  return cursor.execute(query)
+  return cursor.execute(query, (country_code, country_name))
 
 
-def insert_row_verda (cursor, conn, table, fields):
-  query = "INSERT INTO " + table + " (countryid, placename, xml) VALUES ( "
+def insert_row_world (cursor, fields, country_mapping):
+  query = "INSERT INTO places (countryid, placename, xml) VALUES (?, ?, ?);"
   
-  for i in [0, 1, 3]:
-    if 0 != i:
-      query += ", "
-    if 0 == i:
-      query += " (select countryid from countries where countrycode = '" + all_lower(fields[0]) + "' ) "
-    elif 2 == i:
-      continue
-    else:
-      query += "'" + conn.escape_string(all_lower(fields[i].replace(' ', ''))) + "'"
+  countryid = country_mapping[all_lower(fields[0])]
+  placename = fields[1].strip()
+  # countryname in fields[2] is not in use here, already mapped to the country table
+  xml = fields[3].strip()
+  
+  
+#  for i in [0, 1, 3]:
+#    if 0 != i:
+#      query += ", "
+#    if 0 == i:
+#      query += " (select countryid from countries where countrycode = '" + all_lower(fields[0]) + "' ) "
+#    elif 2 == i:
+#      continue
+#    else:
+#      query += "'" + conn.escape_string(all_lower(fields[i].replace(' ', ''))) + "'"
 
-  query += " ) ;"
+#  query += " ) ;"
 
-  print query
-  return cursor.execute(query)
+#  print countryid + ", " + placename + ", " + xml
+  
+  return cursor.execute(query, (countryid, placename, xml))
 
+def create_country_mapping (cursor):
+	cursor.execute("SELECT countryid,countrycode FROM countries;")
+	rows = cursor.fetchall()
+	mapping = {}
+	for row in rows:
+		mapping[row[1]] = row[0]
+	
+	return mapping
+	
 
 def process_file_countries (cursor):
   fd = open( "countries.txt" )
   content = fd.readline()
   while (content != "" ):
     fields = string.split(content, ',')
-    insert_row_countries(cursor, 'countries', fields)
+    insert_row_countries(cursor, fields)
     content = fd.readline()
 
 
-def process_file_verda (cursor, conn):
-  fd = open( "verda2.txt" )
+def process_file_all_places (cursor, country_mapping):
+  fd = open( "all_places.txt" )
   content = fd.readline() #header
   content = fd.readline()
   while (content != "" ):
     fields = string.split(content, ',')
-    insert_row_verda(cursor, conn, 'verda', fields)
+    result = insert_row_world(cursor, fields, country_mapping)
     content = fd.readline()
 
 
 def all_lower (str):
   return str.strip().lower().replace('Æ', 'æ').replace('Ø', 'ø').replace('Å', 'å')
 
+try: 
 
-conn, c = get_db_cursor ()
-clear_db (c, 'countries')
-process_file_countries (c)
-clear_db (c, 'verda')
-process_file_verda(c, conn)
+	conn, c = get_db_cursor ()
+	clear_db (c, 'countries')
+	clear_db (c, 'places')
+	process_file_countries (c)
+	country_mapping = create_country_mapping(c)
+	process_file_all_places(c, country_mapping)
+	
+	conn.commit()
+	conn.close()
+	
+except lite.Error, e:
+        
+    print "Error %s:" % e.args[0]
+
