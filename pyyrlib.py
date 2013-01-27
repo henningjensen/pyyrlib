@@ -47,21 +47,9 @@ def get_location_url(location=False, hourly = False):
   return result
 
 def download_and_parse(url, location):
-  """ Download the xml file
-  """
-  #print "download_and_parse",url
-  # Download the xml data, cached
   ofc = pyofc.OfflineFileCache ('/tmp/pyyrlib-cache/', 1800, urlopenread, url_fix(url), False)
   response, fromcache = ofc.get(location)
 
-#  print " returned " \
-#    + url\
-#      .replace('http://www.yr.no/sted/', '')\
-#      .replace('http://www.yr.no/place/', '')\
-#      .replace('/forecast.xml','')\
-#      .replace('/forecast_hour_by_hour.xml','') +\
-#    " for keyword " + location +\
-#    ", cached: " + str(fromcache)
   location += " cached: " + str(fromcache)
 
   # Parse the xml data

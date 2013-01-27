@@ -36,21 +36,6 @@ def insert_row_world (cursor, fields, country_mapping):
   # countryname in fields[2] is not in use here, already mapped to the country table
   xml = fields[3].strip()
   
-  
-#  for i in [0, 1, 3]:
-#    if 0 != i:
-#      query += ", "
-#    if 0 == i:
-#      query += " (select countryid from countries where countrycode = '" + all_lower(fields[0]) + "' ) "
-#    elif 2 == i:
-#      continue
-#    else:
-#      query += "'" + conn.escape_string(all_lower(fields[i].replace(' ', ''))) + "'"
-
-#  query += " ) ;"
-
-#  print countryid + ", " + placename + ", " + xml
-  
   return cursor.execute(query, (countryid, placename, xml))
 
 def create_country_mapping (cursor):
