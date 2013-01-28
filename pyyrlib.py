@@ -24,44 +24,36 @@ except ImportError:
   pass
 import pyofc
 
-def lookup_location_url(location):
+def find_location(location):
 	"""
-		Returns an array of with a location names and urls 
+		Returns a list with tuples of location name, country and forecast url
 	"""
 	location_list = []	
 	conn, cursor = get_db_cursor ()
 	
-	name = sanitize_string(location)
+	location_clean = sanitize_string(location)
 
-	query = "SELECT id, name, country, xml FROM locations " + \
-	"WHERE name LIKE('" + name + "%') " + \
-	"UNION SELECT id, name, country, xml FROM locations " + \
-	"WHERE LOWER(name) LIKE('%" + name + "%') ORDER BY id ASC"
-
+	if '/' in location_clean:
+		name, country = location_clean.split('/')
+		query = "SELECT id, name, country, xml FROM locations " + \
+		"WHERE name LIKE('" + name + "') AND country LIKE '" + country + "' ORDER BY id ASC"
+	
+	else:
+		name = location_clean
+		query = "SELECT id, name, country, xml FROM locations " + \
+		"WHERE name LIKE('" + name + "%') " + \
+		"UNION SELECT id, name, country, xml FROM locations " + \
+		"WHERE LOWER(name) LIKE('%" + name + "%') ORDER BY id ASC"
+	
 	if 0 < cursor.execute(query):
 		rows = cursor.fetchall()
 		for row in rows:
 			location_list.append((row[1],row[2],row[3]))
-			print row[1]
 			
 	return location_list
-	
-	
-def get_xmlurl_by_name (cursor, name):
-  query = "SELECT xml " +\
-    "FROM places " +\
-    "WHERE placename LIKE('" + name + "%') " +\
-    "UNION " +\
-    "SELECT xml " +\
-    "FROM places " +\
-    "WHERE LOWER(xml) LIKE ('%" + name + "%') "
 
-  if 0 < cursor.execute(query):
-    row = cursor.fetchone ()
-    return row[0]
-  else:
-    return False
 
+# NOT WORKING - NEED TO HANDLE MULTIPLE LOCATIONS
 def get_location_url(location=False, hourly = False):
   """ This function returns the yr.no url of the weather data at a specific 
       location. Postal code is easy, but name search has to connect to db.
@@ -85,10 +77,9 @@ def get_location_url(location=False, hourly = False):
 
 def download_and_parse(url, location):
   ofc = pyofc.OfflineFileCache ('/tmp/pyyrlib-cache/', 1800, urlopenread, url_fix(url), False)
-  response, fromcache = ofc.get(location)
-
-  location += " cached: " + str(fromcache)
-
+  safe_location_name = location.replace('/','-')
+  response, fromcache = ofc.get(safe_location_name)
+	
   # Parse the xml data
   xmlobj = xml.dom.minidom.parseString(response)
   # Return xml object
@@ -306,7 +297,8 @@ def printWeatherData(weatherdata):
   print '\n\033[01;32m%s\033[00m' % (weatherdata['location'])
   
   # Print first text description (for today)
-  print '%s\n' % (weatherdata['text'][0]['description'])
+  if weatherdata['text']:
+    print '%s\n' % (weatherdata['text'][0]['description'])
   
   # Loops through the first three tabular info to print some numbers
   for item in weatherdata['tabular'][:]:
@@ -340,17 +332,22 @@ def returnWeatherData(location, hourly = False):
       Returns False on failure.
   """
   # Try to get location url
+  locationurl = None
   try:
-    locationurl = get_location_url(location, hourly)
-#  except MySQLdb.OperationalError as e:
-#    print "Error in retreiving a location url (no database available): " + location + str(e)
-#    return False, ""
+		locations = find_location(location)
+		if len(locations) == 1:
+			locationurl = locations[0][2]
+		else:
+			print str(len(locations)) + " locations found, please enter location as name/country, e.g. Oslo/Norway"
+			for loc in locations:
+				print " * " + loc[0] + "/" + loc[1]
+			
   except AttributeError as e:
     return False, ""
-  except:
-     print "Error in retreiving a location url: " + location
+  except Exception as e:
+     print "Error in retreiving a location url: " + location + "\n" + str(e)
 
-  if not locationurl:
+  if locationurl is None:
     return False, ""
 
   # Try to download and parse data
@@ -359,7 +356,7 @@ def returnWeatherData(location, hourly = False):
   except Exception as e:
     print "Error in downloading and parsing xml data: "
     print e
-#    traceback.print_exc()
+    traceback.print_exc()
     return False, ""
   
   # Try to interpret xml object
@@ -378,16 +375,15 @@ def getAndPrint(location):
   """ A function that combines the getting and printing of data
   """
   # Get weather data
-  weatherdata = returnWeatherData(location)
-
-  if not weatherdata:
+  weatherdata, locationurl = returnWeatherData(location)
+  if weatherdata is False:
     return False
   
   # Try to print data
   try:
-    printWeatherData(weatherdata[0])
-  except:
-    print "Error in printing xml data:"
+    printWeatherData(weatherdata)
+  except Exception as e:
+    print "Error in printing xml data: " + str(e)
     traceback.print_exc()
     sys.exit(1)
   return 0
@@ -397,26 +393,9 @@ def get_db_cursor ():
   conn=sqlite3.connect("locations.db")
   return conn, conn.cursor ()
 
-
-def get_xmlurl_by_name (cursor, name):
-  query = "SELECT xml " +\
-    "FROM places " +\
-    "WHERE placename LIKE('" + name + "%') " +\
-    "UNION " +\
-    "SELECT xml " +\
-    "FROM places " +\
-    "WHERE LOWER(xml) LIKE ('%" + name + "%') "
-
-  if 0 < cursor.execute(query):
-    row = cursor.fetchone ()
-    return row[0]
-  else:
-    return False
-
-
 def sanitize_string (str):
-  if len(str) > 10:
-    str = str[:10]
+  if len(str) > 100:
+    str = str[:100]
   str = str.strip()\
     .replace('\\','')\
     .replace(';','')\
@@ -458,6 +437,6 @@ if __name__ == "__main__":
     location = None
   else:
     location = sys.argv[1]
+    
   # Run simple print function
   sys.exit(getAndPrint(location))
-#  sys.exit(returnWeatherData(location)[0])  
