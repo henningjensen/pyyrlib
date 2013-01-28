@@ -9,8 +9,8 @@ PyYrLib is a simple python library for using Yr.no’s weather data API.
 You are welcome to participate in this project!
 """
 
-__version__ = '20120316'
-__url__ = 'http://http://gitorious.org/altut-i-python/pyyrlib'
+__version__ = '20130128'
+__url__ = 'http://github.com/henningjensen/pyyrlib'
 __license__ = 'BSD License'
 __docformat__ = 'markdown'
 
@@ -24,6 +24,43 @@ except ImportError:
   pass
 import pyofc
 
+def lookup_location_url(location):
+	"""
+		Returns an array of with a location names and urls 
+	"""
+	location_list = []	
+	conn, cursor = get_db_cursor ()
+	
+	name = sanitize_string(location)
+
+	query = "SELECT id, name, country, xml FROM locations " + \
+	"WHERE name LIKE('" + name + "%') " + \
+	"UNION SELECT id, name, country, xml FROM locations " + \
+	"WHERE LOWER(name) LIKE('%" + name + "%') ORDER BY id ASC"
+
+	if 0 < cursor.execute(query):
+		rows = cursor.fetchall()
+		for row in rows:
+			location_list.append((row[1],row[2],row[3]))
+			print row[1]
+			
+	return location_list
+	
+	
+def get_xmlurl_by_name (cursor, name):
+  query = "SELECT xml " +\
+    "FROM places " +\
+    "WHERE placename LIKE('" + name + "%') " +\
+    "UNION " +\
+    "SELECT xml " +\
+    "FROM places " +\
+    "WHERE LOWER(xml) LIKE ('%" + name + "%') "
+
+  if 0 < cursor.execute(query):
+    row = cursor.fetchone ()
+    return row[0]
+  else:
+    return False
 
 def get_location_url(location=False, hourly = False):
   """ This function returns the yr.no url of the weather data at a specific 
@@ -357,7 +394,7 @@ def getAndPrint(location):
 
 
 def get_db_cursor ():
-  conn=sqlite3.connect("places.db")
+  conn=sqlite3.connect("locations.db")
   return conn, conn.cursor ()
 
 

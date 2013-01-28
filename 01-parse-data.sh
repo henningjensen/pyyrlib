@@ -1,12 +1,11 @@
 #!/bin/bash
 
-#This file is used to parse location data with yr.no-URLs.
-#We will end up with countries.txt, world.txt. Import in db with 02-import-data.py
+# This file is used to parse location data with yr.no-URLs.
+# Output is pushed into all_locations.txt. 
+# Import file with 02-import-data.py
 
-echo "parse world, forcast every 6 hours (not by choice)"
-cut -f1,11 --output-delimiter=, verda.txt |sort |uniq > countries.txt
-cut -f1,4,11,18 --output-delimiter=, verda.txt > all_places.txt
+echo "Parsing norwegian locations - hourly forecast available"
+tail -n+2 noreg.txt |cut -f 2,14 --output-delimiter=';' |awk 'BEGIN {FS =";"} {print $1 ",Norway,"$2 }' |sed 's/\/forecast.xml/\/forecast_hour_by_hour.xml/g' > all_locations.txt
 
-echo "parse norway, hourly forcast"
-tail -n+2 noreg.txt |cut -f 2,14 --output-delimiter=, |awk 'BEGIN { FS = "," } {print "NO,",$1,",Norway,",$2 }' |sed 's/\/forecast.xml/\/forecast_hour_by_hour.xml/g' >> all_places.txt
-echo "NO,Norway" >> countries.txt
+echo "Parsing international locations - forecast every 6 hours (not by choice)"
+cut -f4,11,18 --output-delimiter=, verda.txt >> all_locations.txt

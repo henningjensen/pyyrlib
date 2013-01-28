@@ -1,16 +1,10 @@
-CREATE TABLE IF NOT EXISTS `countries` (
-  `countryid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  `countrycode` VARCHAR(2) NOT NULL,
-  `countryname` VARCHAR(20) NOT NULL,
-  UNIQUE (`countrycode`)
-);
-
-CREATE TABLE IF NOT EXISTS `places` (
+CREATE TABLE IF NOT EXISTS `locations` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  `countryid` INTEGER NOT NULL,
-  `placename` VARCHAR(20) NOT NULL,
+  `name` VARCHAR(100) NOT NULL,
+  `country` VARCHAR(100) NOT NULL,
   `xml` VARCHAR(200) NOT NULL
 );
 
-CREATE INDEX places_countryid ON places ('countryid');
-CREATE INDEX places_placename ON places ('placename');
+CREATE INDEX locations_name ON locations ('name');
+CREATE INDEX locations_country ON locations ('country');
+
