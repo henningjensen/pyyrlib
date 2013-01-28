@@ -89,23 +89,21 @@ class OfflineFileCache:
 
 
   def escape_string(self, str):
-    if len(str) > 20:
-      str = str[:20]
-    str = str.strip()\
-    .replace('..','')\
-    .replace('~','£')\
-    .replace('/','_')
+ #   if len(str) > 20:
+#      str = str[:20]
+#    str = str.strip()\
+#    .replace('..','')\
+#    .replace('~','£')\
+#    .replace('/','_')
 
     return str
 
   def unescape_string(self, str):
-    str = str\
-    .replace('£','~')\
-    .replace('_','/')
+#    str = str\
+#    .replace('£','~')\
+#    .replace('_','/')
 
     return str
-
-
 
 if __name__ == "__main__":
   #Example data:
