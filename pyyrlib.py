@@ -390,7 +390,8 @@ def getAndPrint(location):
 
 
 def get_db_cursor ():
-  conn=sqlite3.connect("locations.db")
+  filename = os.path.join(os.path.dirname(__file__), 'locations.db')
+  conn=sqlite3.connect(filename)
   return conn, conn.cursor ()
 
 def sanitize_string (str):
